@@ -1,0 +1,38 @@
+.env
+.env.local
+.env.development
+.env.production
+
+# Ignore node_modules directory
+node_modules/
+
+# Ignore environment variables file
+.env
+
+# Ignore log files
+*.log
+
+# Ignore npm debug logs
+npm-debug.log*
+
+# Ignore build/output directories
+dist/
+build/
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore IDE-specific files
+.vscode/
+.idea/
+
+# Ignore npm/yarn lock files (choose one based on your package manager)
+# package-lock.json (if you're using yarn)
+# yarn.lock (if you're using npm)
+
+# Ignore local development files
+*.local
+
+# Ignore coverage directories (if you're using testing tools like Jest)
+coverage/
