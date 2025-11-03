@@ -11,9 +11,13 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: "http://localhost:5173", //  your frontend origin
-  credentials: true,               //  allow cookies/headers
+  origin: [
+    "http://localhost:5173",
+    "https://ems-fe-teal.vercel.app"
+  ],
+  credentials: true,
 }));
+
 app.use(express.json());
 app.use('/uploads', express.static('uploads')); // Serve uploaded files
 
