@@ -6,12 +6,16 @@ const taskSchema = new mongoose.Schema({
   description: { type: String, required: true },
   deadline: { type: Date, required: true },
   assignFilePath: { type: String }, 
-  status: { type: String, enum: ["Assigned", "Completed", "Progress"], default: "Assigned" },
+  status: { 
+    type: String, 
+    enum: ["Assigned", "Completed", "Progress", "Pending"], 
+    default: "Assigned" 
+  },
   assignFile: { type: String },          // Original filename
   assignFileStored: { type: String },    // Stored path on server
   submitDate: { type: Date, default: null },
   submitFilePath: { type: String, default: null },
   submitFile: { type: String, default: null },
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model("Task", taskSchema);

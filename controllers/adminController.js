@@ -643,15 +643,15 @@ exports.createTask = async (req, res) => {
 
 exports.getTodayTasks = async (req, res) => {
   try {
-    // Start of today (00:00:00)
+    // Get today's date in the correct format (YYYY-MM-DD)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
-    // Start of tomorrow (next day 00:00:00)
+    
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    console.log("Fetching tasks for date range:", today, "to", tomorrow);
+    console.log("Fetching tasks for today:", today.toISOString());
+    console.log("Date range:", today, "to", tomorrow);
 
     // Fetch tasks with deadline within today
     const tasks = await Task.find({
@@ -659,14 +659,18 @@ exports.getTodayTasks = async (req, res) => {
         $gte: today, 
         $lt: tomorrow 
       },
-      status: { $in: ["Progress", "Completed", "Assigned", "Pending"] },
+      status: { $in: ["Assigned", "Progress", "Pending"] }, // Match schema enum
     })
     .populate("assignedTo", "firstName lastName email profileImage")
     .sort({ deadline: 1 });
 
     console.log(`Found ${tasks.length} tasks for today`);
+    
+    // Log task details for debugging
+    tasks.forEach(task => {
+      console.log(`Task: ${task.name}, Deadline: ${task.deadline}, Status: ${task.status}, Assigned To: ${task.assignedTo?.email}`);
+    });
 
-    // Return empty array instead of 404 for better frontend handling
     res.status(200).json(tasks || []);
   } catch (err) {
     console.error("Error fetching today's tasks:", err.message);
