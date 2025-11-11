@@ -509,7 +509,7 @@ exports.createTask = async (req, res) => {
       return res.status(404).json({ msg: "Assigned user not found" });
     }
 
-     if (assignFilePath && !/^https?:\/\/.+\.(pdf)$/i.test(assignFilePath)) {
+    if (assignFilePath && !/^https?:\/\/.+\.(pdf)$/i.test(assignFilePath)) {
       return res.status(400).json({ msg: "Invalid file path. Must be a valid PDF URL." });
     }
 
@@ -517,25 +517,26 @@ exports.createTask = async (req, res) => {
       return res.status(400).json({ msg: "Only PDF files are allowed." });
     }
 
-     if (deadline) {
+    // FIX: Allow today's date for deadlines
+    if (deadline) {
       const deadlineDate = new Date(deadline);
       const today = new Date();
       today.setHours(0, 0, 0, 0); // midnight today
 
-      if (deadlineDate <= today) {
-        return res.status(400).json({ msg: "Deadline must be a future date." });
+      // Allow today's date by checking if deadline is BEFORE today (not <=)
+      if (deadlineDate < today) {
+        return res.status(400).json({ msg: "Deadline cannot be in the past." });
       }
     }
-
 
     const task = new Task({
       assignedTo,
       name,
       description,
       deadline: deadline ? new Date(deadline) : null,
-      assignFilePath: assignFilePath || null,   // URL (if valid)
-      assignFile: req.file ? req.file.originalname : null, // Uploaded file name
-      assignFileStored: req.file ? req.file.path : null,   // Storage path
+      assignFilePath: assignFilePath || null,
+      assignFile: req.file ? req.file.originalname : null,
+      assignFileStored: req.file ? req.file.path : null,
       status: "Assigned",
     });
 
@@ -546,7 +547,7 @@ exports.createTask = async (req, res) => {
       userId: assignedTo,
       message: `A new task "${name}" has been assigned to you.`,
       type: "task",
-      title: `Task  Assinged`,
+      title: `Task Assigned`,
     });
 
     res.status(201).json({ msg: "Task created successfully", task });
@@ -643,32 +644,45 @@ exports.createTask = async (req, res) => {
 
 exports.getTodayTasks = async (req, res) => {
   try {
-    // Get today's date in the correct format (YYYY-MM-DD)
+    // Get today's date in UTC to avoid timezone issues
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
     
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowUTC = new Date(todayUTC);
+    tomorrowUTC.setDate(tomorrowUTC.getDate() + 1);
 
-    console.log("Fetching tasks for today:", today.toISOString());
-    console.log("Date range:", today, "to", tomorrow);
+    console.log("=== TODAY'S TASKS DEBUG ===");
+    console.log("Local time:", today.toString());
+    console.log("UTC today:", todayUTC.toISOString());
+    console.log("UTC tomorrow:", tomorrowUTC.toISOString());
+    console.log("Querying for deadline between:", todayUTC, "and", tomorrowUTC);
 
-    // Fetch tasks with deadline within today
+    // First, let's see ALL tasks to understand what we have
+    const allTasks = await Task.find({})
+      .populate("assignedTo", "firstName lastName email profileImage")
+      .sort({ deadline: 1 });
+
+    console.log(`\n=== ALL TASKS IN DATABASE (${allTasks.length}) ===`);
+    allTasks.forEach(task => {
+      const taskDate = task.deadline ? new Date(task.deadline) : null;
+      const isToday = taskDate && taskDate >= todayUTC && taskDate < tomorrowUTC;
+      console.log(`• ${task.name} | Deadline: ${task.deadline} | Today: ${isToday} | Status: ${task.status}`);
+    });
+
+    // Query for today's tasks
     const tasks = await Task.find({
       deadline: { 
-        $gte: today, 
-        $lt: tomorrow 
+        $gte: todayUTC, 
+        $lt: tomorrowUTC 
       },
-      status: { $in: ["Assigned", "Progress", "Pending"] }, // Match schema enum
+      status: { $in: ["Assigned", "Progress", "Pending"] }, 
     })
     .populate("assignedTo", "firstName lastName email profileImage")
     .sort({ deadline: 1 });
 
-    console.log(`Found ${tasks.length} tasks for today`);
-    
-    // Log task details for debugging
+    console.log(`\n=== TODAY'S TASKS RESULT (${tasks.length}) ===`);
     tasks.forEach(task => {
-      console.log(`Task: ${task.name}, Deadline: ${task.deadline}, Status: ${task.status}, Assigned To: ${task.assignedTo?.email}`);
+      console.log(`✓ ${task.name} | Deadline: ${task.deadline} | Status: ${task.status}`);
     });
 
     res.status(200).json(tasks || []);
