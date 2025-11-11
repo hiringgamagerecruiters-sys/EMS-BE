@@ -999,24 +999,67 @@ exports.getActiveLeavesByDate = async (req, res) => {
   }
 };
 
+// exports.updateActiveLeaves = async (req, res) => {
+//   const id = req.query.id;
+//   const status = req.query.status;
+
+//   try {
+   
+//     if (!["Approved", "Rejected", "Pending"].includes(status)) {
+//       return res.status(400).json({ message: "Invalid status" });
+//     }
+
+//     const updatedLeave = await LeaveRequest.findByIdAndUpdate(
+//       id,
+//       { status },
+//       { new: true }
+//     ).populate("userId");
+
+//     if (!updatedLeave) {
+//       return res.status(404).json({ message: "Leave request not found" });
+//     }
+
+//     res.status(200).json(updatedLeave);
+//   } catch (err) {
+//     console.error("Leave update error:", err);
+//     res.status(500).json({ message: "Internal server error" });
+//   }
+// };
+
 exports.updateActiveLeaves = async (req, res) => {
   const id = req.query.id;
   const status = req.query.status;
+  const rejectionReason = req.body?.rejectionReason;
 
   try {
-   
     if (!["Approved", "Rejected", "Pending"].includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
     }
 
+    const updateData = { status };
+    
+    // Add rejection reason if provided
+    if (status === "Rejected" && rejectionReason) {
+      updateData.rejectionReason = rejectionReason;
+    }
+
     const updatedLeave = await LeaveRequest.findByIdAndUpdate(
       id,
-      { status },
+      updateData,
       { new: true }
     ).populate("userId");
 
     if (!updatedLeave) {
       return res.status(404).json({ message: "Leave request not found" });
+    }
+
+    // Send notification to user
+    if (status === "Approved" || status === "Rejected") {
+      await Notification.create({
+        userId: updatedLeave.userId._id,
+        message: `Your leave request has been ${status.toLowerCase()}${rejectionReason ? `: ${rejectionReason}` : ''}`,
+        type: "leave",
+      });
     }
 
     res.status(200).json(updatedLeave);
@@ -1025,6 +1068,8 @@ exports.updateActiveLeaves = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+
 
 exports.removeActiveLeaves = async (req, res) => {
   const id = req.query.id;
