@@ -7,10 +7,18 @@ const dailyDiarySchema = new mongoose.Schema({
   filePath: { type: String }, 
   filePathLink: { type: String }, 
   date: { type: Date, default: Date.now },
-  diaryStatus: { type: String, enum: ['Replied', 'Pending'], default: 'Pending' },
-   time: { 
+  diaryStatus: { 
     type: String, 
-    default: () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" ,  hour12: true  }) 
+    enum: ['Replied', 'Pending', 'Approved', 'Rejected'], 
+    default: 'Pending' 
+  },
+  time: { 
+    type: String, 
+    default: () => new Date().toLocaleTimeString([], { 
+      hour: "2-digit", 
+      minute: "2-digit",  
+      hour12: true  
+    }) 
   },
   
   // Reply fields

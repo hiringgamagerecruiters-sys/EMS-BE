@@ -303,21 +303,97 @@ exports.removeDiaries = async (req, res) => {
 };
 
 // Update diary status and reply
+// exports.updateDiaries = async (req, res) => {
+//   try {
+//     // Get diary ID from FormData (req.body) or fallback to query
+//     const diaryId = req.body?.id || req.query?.id;
+//     const status = req.query?.status || req.body?.status || "Pending";
+//     const replyMessage = req.body?.replyMessage || "";
+//     const replyFile = req.file;
+
+//     if (!diaryId) {
+//       return res.status(400).json({ message: "Diary ID is required" });
+//     }
+
+//     // Find the diary
+//     const diary = await DailyDiary.findById(diaryId);
+//     if (!diary) return res.status(404).json({ message: "Diary not found" });
+
+//     // Update status
+//     diary.diaryStatus = status;
+
+//     // Only update reply fields if Replied
+//     if (status === 'Replied') {
+//       diary.replyMessage = replyMessage;
+//       diary.replyDate = new Date();
+//       diary.repliedBy = req.user.id; // Comes from verifyToken
+
+//       if (replyFile) {
+//         diary.replyFilePath = replyFile.path;
+//         diary.replyFileName = replyFile.originalname;
+//       }
+
+//       // Send notification to user
+//       await Notification.create({
+//         userId: diary.userId,
+//         message: `Admin has replied to your diary entry: "${diary.name}".`,
+//         title: `Diary Replied`,
+//         type: "diary",
+//       });
+//     }
+
+//     await diary.save();
+    
+//     // Populate the repliedBy field before sending response
+//     const updatedDiary = await DailyDiary.findById(diaryId)
+//       .populate({
+//         path: "repliedBy",
+//         select: "firstName lastName email",
+//       })
+//       .populate({
+//         path: "userId",
+//         select: "firstName lastName email profileImage nic contactNumber internStartDate internEndDate university addressLine1 addressLine2",
+//         populate: [
+//           { path: "team", select: "teamName" },
+//           { path: "jobRole", select: "jobRoleName" },
+//         ],
+//       });
+
+//     res.status(200).json({ message: "Diary updated successfully", diary: updatedDiary });
+//   } catch (err) {
+//     console.error("Daily Diary update error:", err);
+//     res.status(500).json({ message: "Internal server error" });
+//   }
+// };
+
+// Update diary status
 exports.updateDiaries = async (req, res) => {
   try {
     // Get diary ID from FormData (req.body) or fallback to query
     const diaryId = req.body?.id || req.query?.id;
-    const status = req.query?.status || req.body?.status || "Pending";
+    const status = req.body?.status || req.query?.status || "Pending";
     const replyMessage = req.body?.replyMessage || "";
     const replyFile = req.file;
+
+    console.log("Update request received:", { diaryId, status });
 
     if (!diaryId) {
       return res.status(400).json({ message: "Diary ID is required" });
     }
 
+    // Validate status
+    const validStatuses = ['Replied', 'Pending', 'Approved', 'Rejected'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ 
+        message: "Invalid status. Must be one of: Replied, Pending, Approved, Rejected" 
+      });
+    }
+
     // Find the diary
     const diary = await DailyDiary.findById(diaryId);
-    if (!diary) return res.status(404).json({ message: "Diary not found" });
+    if (!diary) {
+      return res.status(404).json({ message: "Diary not found" });
+    }
 
     // Update status
     diary.diaryStatus = status;
@@ -340,6 +416,10 @@ exports.updateDiaries = async (req, res) => {
         title: `Diary Replied`,
         type: "diary",
       });
+    } else {
+      // For Approved/Rejected status, update reply date and repliedBy
+      diary.replyDate = new Date();
+      diary.repliedBy = req.user.id;
     }
 
     await diary.save();
@@ -359,10 +439,16 @@ exports.updateDiaries = async (req, res) => {
         ],
       });
 
-    res.status(200).json({ message: "Diary updated successfully", diary: updatedDiary });
+    res.status(200).json({ 
+      message: `Diary ${status.toLowerCase()} successfully`, 
+      diary: updatedDiary 
+    });
   } catch (err) {
     console.error("Daily Diary update error:", err);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ 
+      message: "Internal server error",
+      error: err.message 
+    });
   }
 };
 
