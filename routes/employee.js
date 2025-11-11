@@ -16,7 +16,7 @@ router.post('/diary', upload.single('file'), employeeController.submitDiary);
 router.get('/diaries/:id', employeeController.getDiaries);
 router.delete('/diaries/:id', employeeController.deleteDiary);
 router.post('/leave', employeeController.applyLeave);
-router.get('/tasks', employeeController.getTasks);
+router.get('/leave/history', employeeController.getLeaveHistory); // Add this linerouter.get('/tasks', employeeController.getTasks);
 router.get('/all_tasks', employeeController.getAllTasks);
 router.post('/tasks/submit', upload.single('file'), employeeController.submitTask);
 router.put('/task/submit_tasks', upload.single('file'), employeeController.submitTask);

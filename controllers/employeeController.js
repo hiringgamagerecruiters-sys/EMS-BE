@@ -208,24 +208,84 @@ exports.submitDiary = async (req, res) => {
   }
 };
 
-exports.applyLeave = async (req, res) => {
-  const { name, email, leaveDate, reason, endDate } = req.body;
+// exports.applyLeave = async (req, res) => {
+//   const { name, email, leaveDate, reason, endDate } = req.body;
+//   try {
+//     const leave = new LeaveRequest({
+//       userId: req.user.id,
+//       name,
+//       email,
+//       leaveDate,
+//       endDate,
+//       reason,
+//     });
+//     await leave.save();
+//     res.json({ msg: "Leave request submitted successfully" });
+//   } catch (err) {
+//     res.status(500).json({ msg: "Server error" });
+//   }
+// };
+
+
+// Add this function to your existing exports
+exports.getLeaveHistory = async (req, res) => {
   try {
-    const leave = new LeaveRequest({
-      userId: req.user.id,
-      name,
-      email,
-      leaveDate,
-      endDate,
-      reason,
-    });
-    await leave.save();
-    res.json({ msg: "Leave request submitted successfully" });
+    const leaves = await LeaveRequest.find({ userId: req.user.id })
+      .populate('userId', 'firstName lastName email')
+      .sort({ createdAt: -1, leaveDate: -1 });
+    
+    res.status(200).json(leaves);
   } catch (err) {
-    res.status(500).json({ msg: "Server error" });
+    console.error("Leave history fetch error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
+// Also update the applyLeave function to include better validation
+exports.applyLeave = async (req, res) => {
+  try {
+    const { leaveDate, endDate, reason } = req.body;
+    
+    // Validate required fields
+    if (!leaveDate || !endDate || !reason) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+    
+    // Validate dates
+    const start = new Date(leaveDate);
+    const end = new Date(endDate);
+    
+    if (start >= end) {
+      return res.status(400).json({ message: "End date must be after start date" });
+    }
+    
+    if (start < new Date().setHours(0, 0, 0, 0)) {
+      return res.status(400).json({ message: "Leave date cannot be in the past" });
+    }
+
+    const leave = new LeaveRequest({
+      userId: req.user.id,
+      leaveDate: start,
+      endDate: end,
+      reason,
+      status: 'Pending'
+    });
+    
+    await leave.save();
+    
+    // Populate the response
+    const populatedLeave = await LeaveRequest.findById(leave._id)
+      .populate('userId', 'firstName lastName email');
+    
+    res.status(201).json({ 
+      message: "Leave request submitted successfully",
+      leave: populatedLeave 
+    });
+  } catch (err) {
+    console.error("Leave application error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 exports.updateProfile = async (req, res) => {
   const {
