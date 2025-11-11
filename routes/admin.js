@@ -21,11 +21,21 @@ router.get("/leaves/pending", verifyToken, adminController.getPendingLeaveReques
 router.put("/leaves/update", verifyToken, adminController.updateActiveLeaves);
 router.put("/leaves/remove", verifyToken, adminController.removeActiveLeaves);
 router.post('/create_tasks', upload.single('file'), verifyToken, adminController.createTask);
+
+
+
+//Route for Tasks
+
 router.get('/today_tasks', verifyToken, adminController.getTodayTasks);
 router.get('/created_tasks', verifyToken, adminController.getCreatedTasks);
 router.get('/tasks_history', verifyToken, adminController.getTasksHistory);
-router.put('/update_tasks_staus', verifyToken, adminController.updateTaskStatus);
 router.delete('/remove_task', verifyToken, adminController.removeTask);
+
+// router.get('/today_tasks', verifyToken, adminController.getTodayTasks);
+// router.get('/created_tasks', verifyToken, adminController.getCreatedTasks);
+// router.get('/tasks_history', verifyToken, adminController.getTasksHistory);
+router.put('/update_tasks_staus', verifyToken, adminController.updateTaskStatus);
+// router.delete('/remove_task', verifyToken, adminController.removeTask);
 router.post('/calendar', verifyToken, adminController.createCalendarEvent);
 router.get('/calendar', verifyToken, adminController.getCalendarEvents);
 router.get('/attendance_sheet', verifyToken, isAdmin, adminController.getAttendanceSheet);

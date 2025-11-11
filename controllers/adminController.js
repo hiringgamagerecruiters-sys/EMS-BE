@@ -559,6 +559,88 @@ exports.createTask = async (req, res) => {
 
 
 
+// exports.getTodayTasks = async (req, res) => {
+//   try {
+//     // Start of today (00:00:00)
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+
+//     // Start of tomorrow (next day 00:00:00)
+//     const tomorrow = new Date(today);
+//     tomorrow.setDate(tomorrow.getDate() + 1);
+
+//     // Fetch tasks with deadline within today
+//     const tasks = await Task.find({
+//       deadline: { $gte: today, $lt: tomorrow },
+//       status: { $in: ["Progress", "Completed", "Assigned"] }, // you can adjust statuses
+//     }).populate("assignedTo", "firstName lastName email");
+
+//     if (!tasks || tasks.length === 0) {
+//       return res.status(404).json({ msg: "No tasks scheduled for today" });
+//     }
+
+//     res.status(200).json(tasks);
+//   } catch (err) {
+//     console.error("Error fetching today's tasks:", err.message);
+//     res.status(500).json({ msg: "Server error" });
+//   }
+// };
+
+
+
+// exports.getCreatedTasks  = async (req, res) => {
+
+//   try {
+//     const tasks = await Task.find({
+//       status: { $in: ['Progress','Assigned'] } 
+//     }).populate(
+//       "assignedTo",
+//       "firstName lastName email"
+//     );
+
+//     res.json(tasks);
+//   } catch (err) {
+//     console.error(err.message);
+//     res.status(500).json({ msg: "Server error" });
+//   }
+// };
+
+// exports.getTasksHistory  = async (req, res) => {
+
+//   try {
+//     const tasks = await Task.find({
+//       status: { $in: ['Completed'] } 
+//     }).populate(
+//       "assignedTo",
+//       "firstName lastName email"
+//     );
+
+//     res.json(tasks);
+//   } catch (err) {
+//     console.error(err.message);
+//     res.status(500).json({ msg: "Server error" });
+//   }
+// };
+
+// exports.removeTask = async (req, res) => {
+//   const id = req.query.id;
+
+//   try {
+//     const removeTask = await Task.deleteOne({ _id: id });
+
+//     if (removeTask.deletedCount === 0) {
+//       return res.status(404).json({ message: "Task not found" });
+//     }
+
+//     res.status(200).json({ message: "Task removed successfully" });
+//   } catch (error) {
+//     console.error("Error removing Task:", error);
+//     res.status(500).json({ message: "Internal server error" });
+//   }
+// };
+
+
+
 exports.getTodayTasks = async (req, res) => {
   try {
     // Start of today (00:00:00)
@@ -569,56 +651,56 @@ exports.getTodayTasks = async (req, res) => {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
+    console.log("Fetching tasks for date range:", today, "to", tomorrow);
+
     // Fetch tasks with deadline within today
     const tasks = await Task.find({
-      deadline: { $gte: today, $lt: tomorrow },
-      status: { $in: ["Progress", "Completed", "Assigned"] }, // you can adjust statuses
-    }).populate("assignedTo", "firstName lastName email");
+      deadline: { 
+        $gte: today, 
+        $lt: tomorrow 
+      },
+      status: { $in: ["Progress", "Completed", "Assigned", "Pending"] },
+    })
+    .populate("assignedTo", "firstName lastName email profileImage")
+    .sort({ deadline: 1 });
 
-    if (!tasks || tasks.length === 0) {
-      return res.status(404).json({ msg: "No tasks scheduled for today" });
-    }
+    console.log(`Found ${tasks.length} tasks for today`);
 
-    res.status(200).json(tasks);
+    // Return empty array instead of 404 for better frontend handling
+    res.status(200).json(tasks || []);
   } catch (err) {
     console.error("Error fetching today's tasks:", err.message);
-    res.status(500).json({ msg: "Server error" });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-
-
-exports.getCreatedTasks  = async (req, res) => {
-
+exports.getCreatedTasks = async (req, res) => {
   try {
     const tasks = await Task.find({
-      status: { $in: ['Progress','Assigned'] } 
-    }).populate(
-      "assignedTo",
-      "firstName lastName email"
-    );
+      status: { $in: ['Progress', 'Assigned', 'Pending'] } 
+    })
+    .populate("assignedTo", "firstName lastName email profileImage")
+    .sort({ createdAt: -1 });
 
-    res.json(tasks);
+    res.status(200).json(tasks || []);
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ msg: "Server error" });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-exports.getTasksHistory  = async (req, res) => {
-
+exports.getTasksHistory = async (req, res) => {
   try {
     const tasks = await Task.find({
       status: { $in: ['Completed'] } 
-    }).populate(
-      "assignedTo",
-      "firstName lastName email"
-    );
+    })
+    .populate("assignedTo", "firstName lastName email profileImage")
+    .sort({ submitDate: -1, deadline: -1 });
 
-    res.json(tasks);
+    res.status(200).json(tasks || []);
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ msg: "Server error" });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
