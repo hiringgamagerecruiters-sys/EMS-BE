@@ -941,6 +941,224 @@ exports.getAttendanceHistorySheet = async (req, res) => {
   }
 };
 
+// exports.markAttendance = async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+//     const currentTime = new Date();
+//     const currentDate = new Date().toISOString().split('T')[0];
+    
+//     console.log(`📅 Checking attendance for user ${userId} on ${currentDate}`);
+
+//     // Check if attendance already exists for today
+//     const existingAttendance = await Attendance.findOne({
+//       userId: userId,
+//       date: currentDate
+//     });
+
+//     if (existingAttendance) {
+//       console.log(`❌ Attendance already exists for today: ${existingAttendance._id}`);
+//       return res.status(409).json({
+//         message: "Attendance already recorded for today",
+//         existingRecord: existingAttendance
+//       });
+//     }
+
+//     // Calculate status based on time - FIXED LOGIC
+//     const checkInHour = currentTime.getHours();
+//     const checkInMinutes = currentTime.getMinutes();
+//     const totalMinutes = checkInHour * 60 + checkInMinutes;
+    
+//     // Define time thresholds
+//     const ON_TIME_THRESHOLD = 8 * 60 + 15; // 8:15 AM in minutes
+//     const LATE_THRESHOLD = 9 * 60; // 9:00 AM in minutes
+    
+//     let status = 'Attended';
+    
+//     if (totalMinutes <= ON_TIME_THRESHOLD) {
+//       status = 'Attended'; // On Time (before 8:15 AM)
+//     } else if (totalMinutes <= LATE_THRESHOLD) {
+//       status = 'Late'; // Late (8:16 AM - 9:00 AM)
+//     } else {
+//       status = 'Late'; // Very Late (after 9:00 AM)
+//     }
+
+//     console.log(`🕒 Check-in time: ${checkInHour}:${checkInMinutes}, Status: ${status}`);
+
+//     // Create new attendance record
+//     const attendance = new Attendance({
+//       userId: userId,
+//       date: currentDate,
+//       time: currentTime.toLocaleTimeString('en-US', { 
+//         hour: '2-digit', 
+//         minute: '2-digit',
+//         hour12: true 
+//       }),
+//       status: status,
+//       checkInTime: currentTime
+//     });
+
+//     await attendance.save();
+    
+//     console.log(`✅ Attendance recorded successfully: ${attendance._id}`);
+
+//     res.status(201).json({
+//       message: "Attendance marked successfully",
+//       attendance: {
+//         time: attendance.time,
+//         status: attendance.status,
+//         date: attendance.date
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error("❌ Attendance marking error:", error);
+//     res.status(500).json({ 
+//       message: "Server error", 
+//       error: error.message 
+//     });
+//   }
+// };
+
+// Check today's attendance
+// exports.checkTodayAttendance = async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+//     const currentDate = new Date().toISOString().split('T')[0];
+
+//     const attendance = await Attendance.findOne({
+//       userId: userId,
+//       date: currentDate
+//     });
+
+//     res.json({
+//       attendance: attendance || null,
+//       message: attendance ? 'Attendance found for today' : 'No attendance recorded today'
+//     });
+//   } catch (error) {
+//     console.error("Error checking today's attendance:", error);
+//     res.status(500).json({ message: "Server error", error: error.message });
+//   }
+// };
+
+
+// Mark attendance with fixed logic
+exports.markAttendance = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const currentTime = new Date();
+    const currentDate = new Date().toISOString().split('T')[0];
+    
+    console.log(`📅 Checking attendance for user ${userId} on ${currentDate}`);
+
+    // Check if attendance already exists for today
+    const existingAttendance = await Attendance.findOne({
+      userId: userId,
+      date: currentDate
+    });
+
+    if (existingAttendance) {
+      console.log(`❌ Attendance already exists for today: ${existingAttendance._id}`);
+      return res.status(409).json({
+        message: "Attendance already recorded for today",
+        existingRecord: existingAttendance
+      });
+    }
+
+    // Calculate status based on time - FIXED LOGIC
+    const checkInHour = currentTime.getHours();
+    const checkInMinutes = currentTime.getMinutes();
+    const totalMinutes = checkInHour * 60 + checkInMinutes;
+    
+    // Define time thresholds
+    const ON_TIME_THRESHOLD = 8 * 60 + 15; // 8:15 AM in minutes
+    const LATE_THRESHOLD = 9 * 60; // 9:00 AM in minutes
+    
+    let status = 'Attended';
+    
+    if (totalMinutes <= ON_TIME_THRESHOLD) {
+      status = 'Attended'; // On Time (before 8:15 AM)
+    } else if (totalMinutes <= LATE_THRESHOLD) {
+      status = 'Late'; // Late (8:16 AM - 9:00 AM)
+    } else {
+      status = 'Late'; // Very Late (after 9:00 AM)
+    }
+
+    console.log(`🕒 Check-in time: ${checkInHour}:${checkInMinutes}, Status: ${status}`);
+
+    // Create new attendance record
+    const attendance = new Attendance({
+      userId: userId,
+      date: currentDate,
+      time: currentTime.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      }),
+      status: status,
+      checkInTime: currentTime
+    });
+
+    await attendance.save();
+    
+    console.log(`✅ Attendance recorded successfully: ${attendance._id}`);
+
+    res.status(201).json({
+      message: "Attendance marked successfully",
+      attendance: {
+        time: attendance.time,
+        status: attendance.status,
+        date: attendance.date
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ Attendance marking error:", error);
+    res.status(500).json({ 
+      message: "Server error", 
+      error: error.message 
+    });
+  }
+};
+
+exports.checkTodayAttendance = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const currentDate = new Date().toISOString().split('T')[0];
+
+    const attendance = await Attendance.findOne({
+      userId: userId,
+      date: currentDate
+    });
+
+    res.json({
+      attendance: attendance || null,
+      message: attendance ? 'Attendance found for today' : 'No attendance recorded today'
+    });
+  } catch (error) {
+    console.error("Error checking today's attendance:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
+
+
+// Get attendance history
+exports.getAttendanceHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    const attendanceHistory = await Attendance.find({ userId: userId })
+      .sort({ date: -1 })
+      .limit(30); // Last 30 days
+
+    res.json(attendanceHistory);
+  } catch (error) {
+    console.error("Error fetching attendance history:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 exports.getResourceItems = async (req, res) => {
   const position = req.params.category;
 
