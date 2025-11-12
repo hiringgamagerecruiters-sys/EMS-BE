@@ -809,9 +809,36 @@ exports.getUsersByStatus = async (req, res) => {
   }
 };
 
+// exports.getLearningResource = async (req, res) => {
+//   try {
+//     const positionCounts = await User.aggregate([
+//       {
+//         $group: {
+//           _id: "$category",           
+//           count: { $sum: 1 }         
+//         }
+//       },
+//       {
+//         $project: {
+//           _id: 0,
+//           position: "$_id",
+//           count: 1
+//         }
+//       }
+//     ]);
+
+//     res.json(positionCounts);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ msg: "Server error" });
+//   }
+// };
+
+
 exports.getLearningResource = async (req, res) => {
   try {
-    const positionCounts = await User.aggregate([
+    // Get user categories with counts
+    const userCategories = await User.aggregate([
       {
         $group: {
           _id: "$category",           
@@ -822,17 +849,54 @@ exports.getLearningResource = async (req, res) => {
         $project: {
           _id: 0,
           position: "$_id",
-          count: 1
+          count: 1,
+          type: "category"
         }
       }
     ]);
 
-    res.json(positionCounts);
+    // Get job roles with user counts
+    const jobRoles = await JobRole.find({});
+    const jobRolesWithCount = await Promise.all(
+      jobRoles.map(async (role) => {
+        const userCount = await User.countDocuments({ category: role.jobRoleName });
+        return {
+          position: role.jobRoleName,
+          count: userCount,
+          type: "jobRole",
+          _id: role._id
+        };
+      })
+    );
+
+    // Get teams with user counts
+    const teams = await Team.find({});
+    const teamsWithCount = await Promise.all(
+      teams.map(async (team) => {
+        const userCount = await User.countDocuments({ team: team.teamName });
+        return {
+          position: team.teamName,
+          count: userCount,
+          type: "team", 
+          _id: team._id
+        };
+      })
+    );
+
+    // Combine all data
+    const combinedData = [
+      ...userCategories,
+      ...jobRolesWithCount,
+      ...teamsWithCount
+    ].filter(item => item.position && item.position !== null && item.position !== undefined);
+
+    res.json(combinedData);
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Server error" });
   }
 };
+
 
 exports.getAttendanceSheet = async (req, res) => {
   try {
@@ -875,16 +939,73 @@ exports.getAttendanceHistorySheet = async (req, res) => {
 };
 
 exports.getResourceItems = async (req, res) => {
- 
-  const category = req.params.category;
+  const position = req.params.category;
 
   try {
-   
-    const resources = await User.find({ category: category });
+    console.log("🔍 Fetching resource items for:", position);
+    
+    let users = [];
 
-    res.status(200).json(resources);
+    // Check if it's a job role
+    const jobRole = await JobRole.findOne({ 
+      jobRoleName: { $regex: new RegExp(`^${position}$`, 'i') } 
+    });
+
+    // Check if it's a team
+    const team = await Team.findOne({ 
+      teamName: { $regex: new RegExp(`^${position}$`, 'i') } 
+    });
+
+    if (jobRole) {
+      console.log(`📋 Found job role: ${jobRole.jobRoleName}`);
+      // Find users with this job role ID
+      users = await User.find({ jobRole: jobRole._id })
+        .populate('jobRole', 'jobRoleName')
+        .populate('team', 'teamName')
+        .select('firstName lastName email role contactNumber profileImage userCode university');
+    } 
+    else if (team) {
+      console.log(`👥 Found team: ${team.teamName}`);
+      // Find users with this team ID
+      users = await User.find({ team: team._id })
+        .populate('jobRole', 'jobRoleName')
+        .populate('team', 'teamName')
+        .select('firstName lastName email role contactNumber profileImage userCode university');
+    } 
+    else {
+      console.log(`📝 Treating as category: ${position}`);
+      // Treat as category (original behavior)
+      users = await User.find({ category: position })
+        .populate('jobRole', 'jobRoleName')
+        .populate('team', 'teamName')
+        .select('firstName lastName email role contactNumber profileImage userCode university');
+    }
+
+    console.log(`✅ Found ${users.length} users for: ${position}`);
+    
+    // Transform the data to match expected format
+    const transformedUsers = users.map(user => ({
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: user.role,
+      contactNumber: user.contactNumber,
+      profileImage: user.profileImage,
+      userCode: user.userCode,
+      university: user.university,
+      // Additional fields that might be useful
+      jobRole: user.jobRole?.jobRoleName || 'Not assigned',
+      team: user.team?.teamName || 'Not assigned'
+    }));
+
+    res.status(200).json(transformedUsers);
   } catch (err) {
-    res.status(500).json({ message: 'Error fetching resources', error: err });
+    console.error('❌ Error fetching resource items:', err);
+    res.status(500).json({ 
+      message: 'Error fetching resources', 
+      error: err.message 
+    });
   }
 };
 
