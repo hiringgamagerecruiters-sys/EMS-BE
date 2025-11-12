@@ -855,11 +855,11 @@ exports.getLearningResource = async (req, res) => {
       }
     ]);
 
-    // Get job roles with user counts
+    // Get job roles with user counts - FIXED
     const jobRoles = await JobRole.find({});
     const jobRolesWithCount = await Promise.all(
       jobRoles.map(async (role) => {
-        const userCount = await User.countDocuments({ category: role.jobRoleName });
+        const userCount = await User.countDocuments({ jobRole: role._id }); // Fixed: query by ObjectId
         return {
           position: role.jobRoleName,
           count: userCount,
@@ -869,11 +869,11 @@ exports.getLearningResource = async (req, res) => {
       })
     );
 
-    // Get teams with user counts
+    // Get teams with user counts - FIXED
     const teams = await Team.find({});
     const teamsWithCount = await Promise.all(
       teams.map(async (team) => {
-        const userCount = await User.countDocuments({ team: team.teamName });
+        const userCount = await User.countDocuments({ team: team._id }); // Fixed: query by ObjectId
         return {
           position: team.teamName,
           count: userCount,
@@ -892,8 +892,11 @@ exports.getLearningResource = async (req, res) => {
 
     res.json(combinedData);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ msg: "Server error" });
+    console.error("Error in getLearningResource:", err);
+    res.status(500).json({ 
+      msg: "Server error",
+      error: err.message 
+    });
   }
 };
 
@@ -958,7 +961,7 @@ exports.getResourceItems = async (req, res) => {
 
     if (jobRole) {
       console.log(`📋 Found job role: ${jobRole.jobRoleName}`);
-      // Find users with this job role ID
+      // Find users with this job role ID - FIXED: use ObjectId
       users = await User.find({ jobRole: jobRole._id })
         .populate('jobRole', 'jobRoleName')
         .populate('team', 'teamName')
@@ -966,7 +969,7 @@ exports.getResourceItems = async (req, res) => {
     } 
     else if (team) {
       console.log(`👥 Found team: ${team.teamName}`);
-      // Find users with this team ID
+      // Find users with this team ID - FIXED: use ObjectId
       users = await User.find({ team: team._id })
         .populate('jobRole', 'jobRoleName')
         .populate('team', 'teamName')
