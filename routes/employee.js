@@ -10,8 +10,8 @@ router.use(verifyToken);
 
 
 router.get('/profile', employeeController.getProfile);
-router.post('/attendance', employeeController.markAttendance);
-router.get('/attendance/history', employeeController.getAttendanceHistory);
+// router.post('/attendance', employeeController.markAttendance);
+// router.get('/attendance/history', employeeController.getAttendanceHistory);
 router.post('/diary', upload.single('file'), employeeController.submitDiary);
 router.get('/diaries/:id', employeeController.getDiaries);
 router.delete('/diaries/:id', employeeController.deleteDiary);
@@ -27,6 +27,16 @@ router.get('/is_attendance', employeeController.getIsAttend);
 router.get('/all_courses', employeeController.getAllCourses);
 router.get('/course/:id', employeeController.getCourseDetails);
 router.get('/leavesreq', employeeController.getUserLeaveRequests);
+
+
+router.post('/attendance', verifyToken, employeeController.markAttendance);
+router.get('/attendance/today', verifyToken, employeeController.checkTodayAttendance);
+router.get('/attendance/history', verifyToken, employeeController.getAttendanceHistory);
+
+// Keep existing route for compatibility
+router.get('/is_attendance', verifyToken, employeeController.checkTodayAttendance);
+
+
 
 
 
